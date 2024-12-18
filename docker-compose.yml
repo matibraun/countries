@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  polinomic:
+    build: ./polinomic
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./polinomic/:/usr/src/polinomic/
+    ports:
+      - 8000:8000
+      - 5100:5100
+    env_file:
+      - ./polinomic/.env.dev
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:13.0-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=polinomic
+
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+    restart: always 
+
+  celery_worker:
+    build: ./polinomic
+    command: celery -A polinomic worker --loglevel=info
+    volumes:
+      - ./polinomic/:/usr/src/polinomic/
+    env_file:
+      - ./polinomic/.env.dev
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+  celery_beat:
+    build: ./polinomic
+    command: celery -A polinomic beat --loglevel=info
+    volumes:
+      - ./polinomic/:/usr/src/polinomic/
+    env_file:
+      - ./polinomic/.env.dev
+    depends_on:
+      - db
+      - redis
+      - celery_worker
+    restart: always
+
+volumes:
+  postgres_data:
