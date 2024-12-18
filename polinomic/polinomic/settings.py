@@ -139,6 +139,6 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_BEAT_SCHEDULE = {
     'trigger-endpoint-every-hour': {
         'task': 'country.tasks.fetch_and_save_countries',
-        'schedule': crontab(hour='*', minute='*'),  # Run every hour
+        'schedule': crontab(hour='*', minute=0),
     },
 }
