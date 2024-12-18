@@ -8,6 +8,7 @@ from .serializers import CountrySerializer
 from .models import Country
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 class CountriesAPIView(APIView):
     """
@@ -18,6 +19,18 @@ class CountriesAPIView(APIView):
     """
     permission_classes = [AllowAny]
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(requests.RequestException)
+    )
+    def _fetch_countries_data(self):
+
+        url = "https://restcountries.com/v3.1/all?fields=name,flags,capital,population,continents,timezones,area,latlng"
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+
     def post(self, request, format=None):
         """
         Handle POST requests:
@@ -25,11 +38,7 @@ class CountriesAPIView(APIView):
         """
         try:
 
-            url = "https://restcountries.com/v3.1/all?fields=name,flags,capital,population,continents,timezones,area,latlng"
-            response = requests.get(url)
-            response.raise_for_status()
-            
-            countries = response.json()
+            countries = self._fetch_countries_data()
             
             with transaction.atomic():
 

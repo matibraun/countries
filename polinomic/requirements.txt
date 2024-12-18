@@ -29,3 +29,4 @@ psycopg2-binary==2.9.9
 pytest==7.4.3
 django_celery_beat==2.7.0
 celery[redis]==5.4.0
+tenacity==9.0.0
